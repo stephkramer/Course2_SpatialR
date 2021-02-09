@@ -2,4 +2,4 @@ Using our long standing projects in Borneo, we demonstrate how to use R as a GIS
 as summarised in Course1_IntroR.
 Please download the course data here (approx. 600 MB): 
 https://www.dropbox.com/sh/91qey7u5ohn5fmf/AAD84ZxnExw4Chd93XidEaF6a?dl=0
-and then follow the course here:
+and then follow the course here:[R goes Spatial](https://stephkramer.github.io/Day2_RSpatial.html)
