@@ -1,0 +1,1260 @@
+---
+title: "Tutorial Part II - R goes spatial"
+author: "Stephanie Kramer-Schadt"
+date: "`r Sys.Date()`" # "`r Sys.setlocale('LC_TIME','C'); paste('Last Update', format(Sys.time(), '%B %e, %Y')) `"
+output:
+  html_document:
+    code_folding: show
+    link-citations: yes
+    toc: yes
+    toc_depth: 4
+    toc_float: yes
+  pdf_document:
+    toc: yes
+    toc_depth: '4'
+  slidy_presentation: default
+editor_options:
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+#knitr::opts_knit$set(root.dir = 'c:/Users/kramer/Dropbox/_Geodata_Borneo')
+```
+
+# Introduction
+
+Let me start with a big thanks to Moritz Wenzler, Cedric Scherer, Pierre Gras and Juergen
+Niedballa who constantly helped to improve the course! I am deeply indepted to you!
+
+The course is intended to be a quick introduction to using R as a GIS. It builds
+on the previous course, Day1_RIntro, and is written in such a way that you can 
+understand handling spatial data when knowing the basics of handling data.frames, 
+matrices and lists. There is no need to know tidyverse/dplyr coding style.
+
+This course provides the basics for using the most important spatial 
+data types - vector (points, lines, polygons, aka ESRI shapefiles) and raster data.
+In R, these are *Spatial(Points/Lines/Polygons)DataFrame* or *RasterLayer* Objects. 
+Recently, *sf*-objects have been developed to handle vector data more easily. The
+latter can be treated like simple data.frames. Also the raster package is
+under development - called *terra* package - but the course does not yet cover this.
+The *terra* package is especially useful for remote sensing data.
+
+In addition to different data types, the course provides sections on coordinate 
+projections and the most important geospatial operations. Last but not least - 
+we plot a lot to ease data visualisation and because it is fun.
+
+The data we use stem from a longstanding project we run in Borneo. Please refer to
+our website www.ecological-dynamics-izw.com. The project involves species
+conservation and large scale landscape planning. To learn more about the
+data used in the course and the project, please refer to the following publications 
+(freely available):
+
+* Targeted conservation to safeguard a biodiversity hotspot from climate and land-cover change.
+MJ Struebig, et al. 2015. Current Biology 25 (3), 372-378
+
+* Anticipated climate and land‐cover changes reveal refuge areas for Borneo's orang-utans.
+MJ Struebig, et al. 2015. Global Change Biology 21 (8), 2891-2904
+
+* The importance of correcting for sampling bias in MaxEnt species distribution models.
+S Kramer‐Schadt et al. 2013. Diversity and Distributions 19 (11), 1366-1379.
+
+* The Borneo carnivore database and the application of predictive distribution modelling.
+S Kramer-Schadt, et al.2016. Raffles Bulletin of Zoology, Supplement No. 33: 18–41.
+
+ 
+## Useful (web)sites
+
+1. R news and tutorials
+* http://www.r-bloggers.com/
+
+2. Quick introduction to spatial R
+* https://rspatial.org/
+* http://pakillo.github.io/R-GIS-tutorial/
+* http://rstudio-pubs-static.s3.amazonaws.com/7993_6b081819ba184047802a508a7f3187cb.html
+
+3. Spatial visualisation
+* check out the packages tmap, ggmap, leaflet and cartography
+* https://cran.r-project.org/web/packages/tmap/vignettes/tmap-getstarted.html
+* A whole book: https://clauswilke.com/dataviz/  with spatial data here:
+  https://clauswilke.com/dataviz/geospatial-data.html
+
+4. overview over spatial packages
+* http://cran.r-project.org/web/views/Spatial.html # http://cran.r-project.org/view=Spatial
+* https://www.r-spatial.org/  
+
+5. R-cheatsheets - great for learning 'vocabulary'
+* in your folder 
+* or here: https://www.rstudio.com/resources/cheatsheets/
+
+6. Infos about simple features in R (sf package) 
+*  https://r-spatial.github.io/sf/index.html   
+*  and nice intro: https://oliviergimenez.github.io/introspatialR/#1  
+
+7. Use EPSG codes as unique and specific identifies of your coordinate reference systsem instead of writing projection details. 
+   See http://spatialreference.org/ for EPSG codes or
+   https://www.nceas.ucsb.edu/~frazier/RSpatialGuides/OverviewCoordinateReferenceSystems.pdf
+   
+8. BioMove specials:
+*  For analysis of  plot-based biodiversity data: package **vegan**
+*  For analysis of telemetry data: packages **adehabitatHR, adehabitatLT, move,recurse, momentuHMM, moveHMM, ctmm**
+   
+## Further reading
+
+1. Check Roger Bivand's publications:
+* http://cran.r-project.org/web/views/Spatial.html
+* http://www.csiss.org/learning_resources/index.html
+* Roger Bivand et al. 2008, Applied Spatial Data Analysis in R, Springer
+
+2. Check Edzer Pebesma's course materials and publications:
+* http://ifgi.uni-muenster.de/~epebe_01/
+* https://edzer.github.io/UseR2017/  
+* https://www.rstudio.com/resources/videos/tidy-spatial-data-analysis/  
+
+3. Geocomputation with R: a free book of Robin Lovelace, Jakub Nowosad, Jannes Muenchow
+* https://geocompr.robinlovelace.net
+
+4. DataVizzArt  Cedric Scherer -> check out his #TidyTuesday or #30DaysMapChallenge contributions
+* https://www.cedricscherer.com/top/dataviz/
+
+
+# Basics
+## How to install...
+
+```{r}
+pkgs = c("here", "terra", "sp", "sf", "dismo", "raster", "GISTools",  "rgdal", 
+         "maptools", "rgeos","rgl","rasterVis", "ellipse", "units", "tmap", 
+         "viridis","dplyr", "gdistance","vegan", 
+         "psych", "iNext", "BAT", "ggplot2") # package names
+# install.packages(pkgs)
+# update.packages()
+```
+
+## ...and load packages
+
+```{r, warning = FALSE}
+library(here) #for easy directory management
+
+# soon not going to be supported any more
+library(sp) 
+library(raster)
+library(rgdal)
+library(rgeos)
+library(rgl)
+library(rasterVis)
+
+# the soon up-to-date spatial packages
+library(sf)
+library(terra)
+library(tmap)
+library(dismo)
+library(GISTools)
+library(maptools)
+
+library(viridis) # nice colour palettes
+library(units)
+library(ggplot2)
+```
+
+## How to call help 
+
+```{r}
+#- Information about a function or a package. If you do not understand some
+# of the code below, always check the arguments and help of the function.
+?dismo
+#- search for an item:
+??SpatialPolygons
+#- show the instructions of a package:
+vignette(package = "dismo") # vignette(package="sp")
+#- load the instruction of a package (embedded pdf):
+vignette("over") #vignette("sdm")
+```
+
+
+```{r, eval=FALSE, echo=FALSE}
+sp::plot
+showMethods(f = 'plot') #S4 type method
+methods(generic.function = 'plot') #S3 type method
+```
+
+## Assign the workspace
+
+Please note: if you follow the d6-package installation 
+https://github.com/EcoDynIZW/d6
+and have stored all your geo-data in the respective folder (.../data-raw/geo-raw),
+there is no need to set the root folder. The root folder automatically
+is the project folder.
+```{r}
+# adjust the working directory [wd]
+here()   # where are you? -> you should go to your root/ parent directory
+getwd()  # alternative fct
+
+mypath <- here()
+root_wd <- dirname(mypath) # dirname gives the parent/ root dir
+
+# or set it 'by hand' (less elegant), e.g.
+# root_wd <- setwd("C:/Users/kramer/PopDynIZW Dropbox/Steph Kramer/_GitHub")
+```
+<br>
+
+Assign the subfolders relative to wd. (please adjust to your setup)
+
+```{r}
+#today, we start with Borneo
+work_wd   <- paste0(root_wd, "/", "_DataBorneo") # mind difference paste0() and paste()
+maps_wd   <-  paste(work_wd, "/", "BaseMaps",    sep = '')
+recs_wd   <-  paste(work_wd, "/", "BaseRecords", sep = '')
+```
+<br>
+Create an output folder where you can temporarily store your results with *dir.create*.
+Mind: the folder structure already exists when using the d6-package. 
+
+```{r}
+output_wd <- paste0(dirname(root_wd), "/", "_A_Borrar")
+if (!dir.exists(output_wd)) {dir.create(output_wd)}
+
+```
+<br><br>
+
+
+## Access folder content
+
+You will find a lot of bioclimatic raster files (.asc) as well as shapefiles in the folder
+```{r}
+filenames <- list.files(path=maps_wd)
+##run also :
+# filenames
+head(x = filenames)
+```
+<br>
+
+## Recap
+
+**useful functions:**
+<br>
+*head()* : only shows the first 6 elements, i.e. if you have a large data frame, you can quickly check header and the first entries (analoguously: tail() )
+<br>
+*paste(   , sep='')* : appends characters or numbers - great for working directories, loops across many maps or data.frames etc
+<br>
+**data formats and access:**
+<br>
+*data.frame*  :  [row, column] or "dollar sign", i.e. mydata[1,2]: first row, second column, or     mydata$MyColumnName[1]
+<br>
+*matrix*  :  see above
+<br>
+*list*    :  [[element]], i.e. mylist[[1]]. Achtung! A list element can consist of a data.frame, that you can then access like that: mylist[[1]][1,2]....
+<br>
+*S4-objects* (like spatial data)  :  @, i.e. RasterLayer@data@values
+
+
+<br><br>
+
+# Data Types 
+
+##  Raster data
+
+### Data import 
+
+First, load a raster map. Please check the description in the folder called
+DataDescription_Borneo.doc. The file bio_asc_01.asc is showing mean annual 
+temperature * 10. Why?  Because it can be stored as integer, not floating type, 
+which saves a lot of storage and memory.
+```{r}
+# read the ascii file as raster format
+ras1 <- raster(x = paste0(maps_wd, '/bio_asc_01.asc'))
+Bor_mat <- ras1 #easy copying of whole maps
+```
+<br>
+Now have a look at the object
+```{r}
+ras1
+```
+
+What does the slot with extent tells you? Looks like decimal degrees, i.e. could be
+latitude and longitude. However, the slot crs (crs stands for coordinate reference system)
+is empty. That means, without knowing the reference system, the map cannot be
+plotted at the exact location on the globe. Thus, when you get a map, always
+make sure you also get the information of the coordinate reference system! If it 
+is not yet set (because you import a raster map as a simple matrix or points from
+a file), this is the first thing you should do!
+Btw - you can access the information of an S4-class such as RasterLayer objects (https://rdrr.io/cran/raster/man/raster.html) with '@':
+
+```{r}
+# str(ras1) #check this
+ras1@crs
+```
+<br>
+
+### Assign projection 
+
+Important! Please read:
+@crs gives the information of the object (here: raster layer) Bor_mat or ras1, and
+CRS() is calling to a function that sets/defines the crs of the object. 
+Mind the spelling in small letters/ capitals! 
+crs = shows coordinate reference system of a spatial object;
+CRS creates projection and sets arguments for crs!
+
+An easy way to specify the crs is using the EPSG code, e.g. instead of
+CRS("+proj=longlat +datum=WGS84") use 
+CRS("+init=epsg:4326").
+
+See http://spatialreference.org/. The code for WGS84 is 4326.
+
+
+```{r}
+ras1@crs <- CRS(projargs = "+proj=longlat +datum=WGS84")# equal to
+ras1@crs <- CRS("+init=epsg:4326")
+# mind: crs != CRS
+```
+<br>
+Projections can also be transferred from one object to another, when the crs hasn't yet been specified/ set . In the following, load the topographic map (digital elevation model) of Borneo (Bor_dem.asc) and assign it the same crs as Bor_mat:
+```{r}
+# ras24 = DEM = digital elevation model
+ras24 <- raster(x = paste0(maps_wd, '/bio_asc_24.asc')) 
+ras24@crs <- ras1@crs # same as: CRS("+proj=longlat +datum=WGS84")
+```
+<br><br>
+
+##### Plot for a quick look
+
+There are different ways to plot a raster map. Below is a chapter on visualising
+raster data, here I just give a very quick overview to get a first
+impression of the data we work with.
+
+The easy base plot:
+```{r}
+# base plot
+plot(x = ras1)
+```
+<br>
+Using the tmap package:
+
+```{r}
+# static plot
+tmap_mode(mode = "plot")
+tm_shape(shp = ras1) + tm_raster()
+```
+<br>
+Very good for checking the correct location of the data. Click on the + | - | layer 
+icons on the upper left and zoom in or out and change the background layers:
+
+```{r}
+# interactive plot
+tmap_mode(mode = "view")
+tm_shape(shp = ras1) + tm_raster()
+```
+<br><br>
+
+### Clip areas
+
+We do this first to work with a small raster to save computation time. For this, 
+we create a clip_extent based on the spatial coordinates. The command 'crop' then 
+clips the raster map.
+```{r}
+extent(x = ras1) # same as extent@ras1
+clip_extent <- extent(117.2, 117.45, 5.4, 5.5)
+ras1_cr <- crop(x = ras1, y = clip_extent)
+plot(ras1_cr, col= inferno(10))
+```
+<br>
+
+### Accessing *RasterLayer*s
+
+First, have a look at the internal data structure
+of the raster object:
+
+```{r}
+ras1_cr # str(ras1_cr) # attributes(ras1_cr) # class(ras1_cr)
+```
+<br>
+There are many ways to retrieve internal data and access single bits of 
+information:
+```{r}
+
+bbox(obj = ras1_cr)
+ras1_cr@extent@xmin
+   # xmin(ras1_cr) # xmin(extent(ras1))
+   # ras1_cr@extent # extent(ras1_cr) # attr(ras1_cr,'extent')
+ras1_cr@ncols        # ncol(ras1_cr) !n.b. cols vs. col!
+ras1_cr@data@values  # values(ras1_cr)
+ras1_cr@crs
+   # crs(ras1_cr) # projection(ras1_cr) !=CRS(ras1_cr)
+
+# crs = coordinate reference system defined
+# CRS creates projection and takes args for crs!
+# e.g. CRS("+proj=longlat +datum=WGS84")
+```
+
+
+```{r}
+#Retrieve internal data cont.:
+nrow(x = ras1_cr) # ncol(ras1_cr) # ncell(ras1_cr)
+dim(x = ras1_cr)  # 12 rows, 30 columns, 1 z-dimension
+res(x = ras1_cr)  # resolution = cell size
+```
+<br>
+
+An important function is *coordinates()*, which gives you the centroids of
+each raster cell.
+```{r}
+head(x = coordinates(obj = ras1_cr), n = 10) # command from package 'sp'
+```
+<br><br>
+
+### Terrain computation
+
+Create a hillshade (3D look) based on topography using slope and aspect:
+- simulates a 3D surface
+- computes shaded relief values for a raster surface
+```{r}
+slope <- terrain(x = ras24, opt = "slope",
+                    unit = "radians", neighbors = 8)
+aspect <- terrain(x = ras24, opt = "aspect",
+                     unit = "radians", neighbors = 8)
+Bor_hs <- hillShade(slope, aspect, angle = 45,
+                      direction = 270)
+```
+<br>
+Plot the hillshade
+```{r}
+plot(Bor_hs, col=grey(0:100/100), legend=FALSE)
+```
+Other very useful terrain calculations are cost surfaces, cost distances
+and least cost path, e.g. for corridor calculations. We will do that in
+another course.
+<br><br>
+
+### Visualising rasters
+
+Difference between *plot* and *image*
+
+#### plot
+
+*plot* keeps the proportion of the map/ cells (e.g. squares here).
+```{r}
+plot(x = ras1, col=viridis(256))
+#plot(ras1_cr)
+```
+<br>
+However, if you plot several layers on top of each other, *plot* will not 
+overlay them exactly, because the argument 'add' fails (example below). 
+In that case, better use *image*, or any other plot function.
+
+#### image (raster)
+
+If you use *image*, the plotted proportions will be changed and skewed to the
+plot surface.
+```{r}
+image(x = ras1)
+# image(ras1_cr)
+```
+
+<br><br><br>
+
+#### tmap (interactive plots)
+
+you can also save the interactive map - check your output folder for the html 
+file. Tip of the day: always save the epsg code of your crs at the end of
+a spatial file.
+```{r}
+tmap_mode("view")
+(i.m <- tm_shape(ras1) +
+  tm_raster(palette = "viridis",  title = "Mean annual temp"))
+tmap_save(i.m, paste0(output_wd,"/BorneoMAT_4326.html"))
+
+```
+<br>
+You can also use this package to create high quality plots for your publications.
+```{r}
+tmap_mode("plot")
+(m <- tm_shape(ras1) +
+  tm_raster(palette = "viridis",  title = "Mean annual temp"))
+tmap_save(m, paste0(output_wd,"/BorneoMap_4326.png"), 
+          units = "mm", width = 70, height = 70, dpi = 150 )
+
+```
+<br><br>
+
+#### ggplot with raster
+
+For advanced R-users : Beautiful plots can also be made with ggplot2; however, 
+RasterLayer objects cannot directly be plotted, but have to be converted to a 
+conventional data frame first, i.e. 2 steps are needed prior to plotting. The
+object SpatialPointsDataFrame is explained in more detail when working with
+vector data.
+
+```{r}
+# First, convert RasterLayer object to a SpatialPointsDataFrame
+ras1_pts <- rasterToPoints(ras1, spatial = TRUE)
+# Then to a dataframe
+ras1_pts  <- data.frame(ras1_pts)
+
+ggplot() +
+  geom_raster(data = ras1_pts , aes(x = x, y = y, fill = bio_asc_01)) + 
+  scale_fill_gradientn(colors=viridis(100),name = "°C * 10") +
+  xlab("Longitude") +
+  ylab("Latitude") +
+  ggtitle("mean annual temperature")
+```
+<br><br>
+
+#### composite plots
+
+##### Simple composite plot
+
+Plot the hillshade (3D relief) and add temperature colours on top: alpha value 
+gives semi-transparency. 
+
+```{r}
+image(Bor_hs, col=grey(0:100/100))
+image(ras24, col=terrain.colors(25,alpha=0.3),add=T)
+points(coordinates(ras1_cr),cex=0.1,pch='+')
+plot(extent(ras1_cr),add=T, col='red')
+```
+Now open the image-plot with the zoom icon in a separate window and change the size.
+You will see that the different layers are still plotted on top of each other.
+<br>
+Now do the same with the base plot function:
+```{r}
+plot(Bor_hs, col=grey(0:100/100),legend = FALSE)
+plot(ras24, col=terrain.colors(25,alpha=0.3),add=T)
+points(coordinates(ras1_cr),cex=0.1,pch='+')
+plot(extent(ras1_cr),add=T, col='red')
+```
+
+The extent is plotted as a red box, and the centroid coordinates of the raster
+cells are plotted as points. Use the 'zoom' function to increase the plot. To
+do so, call 'zoom' and click twice on the map to span your rectangle. Check out 
+the area around the red box:
+```{r}
+# zoom()
+# locator(2) # gives you the coordinates of - here 2 - locations interactively
+```
+
+<br> <br>
+
+##### composite plot with tmap
+
+In the following, we will create a SpatialPointDataFrame (sf-package) from the
+small clipped/ cropped raster and plot it on top of the hillshade
+
+```{r}
+hillsh <- Bor_hs
+
+# make sf object from coordinates -> you will learn that also later
+ras1_cr_sf <- st_as_sf(data.frame(coordinates(ras1_cr)), # create dataframe of coordinates
+                       coords = c("x", "y"), # define columns for the coordinates
+                       crs = 4326, # define crs, 4326 is the EPSG code
+                       sf_column_name = "geometry") # sf needs a geometry column and you have to name it
+
+
+# interactive plot
+tmap_mode(mode = "view")
+tm_shape(shp = hillsh, raster.downsample= TRUE)  + tm_raster(palette = "Greys") +
+  tm_shape(shp = ras24, raster.downsample= TRUE) + tm_raster(palette = grDevices::topo.colors(20),
+                                    alpha = 0.3) +
+  tm_shape(shp = ras1, raster.downsample= TRUE) + tm_raster(palette = grDevices::rainbow(10),
+                                    alpha = 0.3) +
+  tm_shape(shp = ras1_cr_sf) + tm_dots(shape = 20, 
+                                       size = 0.01) 
+            ## shape arg: 20 is equal to o, in view mode  only dots and circles allowed
+```
+
+```{r}
+# static plot
+tmap_mode(mode = "plot")
+tm_shape(shp = hillsh, raster.downsample= TRUE) + tm_raster(palette = "Greys") +
+  tm_shape(shp = ras24, raster.downsample= TRUE) + tm_raster(palette = grDevices::terrain.colors(10),
+                                     alpha = 0.3) +
+  tm_shape(shp = ras1_cr_sf) + tm_dots(shape = 3, # 3 is equal to +
+                                        size = 0.5) 
+
+```
+<br> <br>
+
+
+#### perspective: 3D plot
+
+```{r}
+#- Cool 3D plots with rgl library, e.g. 'rgl.surface'
+persp(x = ras24, xlab = "Easting", ylab = "Northing",
+      zlab = "elevation", r = 5, d = 1.5, expand = 0.1,
+      ticktype = "detailed")
+```
+<br>
+
+Why is it so spiny??? Check units! This is still a geographic crs, not a
+projected one. Wait for the lecture for details.
+
+<br><br>
+
+### Raster projection
+
+Project the Grid  (the small one!!!) to have all units in meters!
+```{r}
+proj_moll=CRS("+proj=moll +lat_0=65 +lon_0=10") # Mollweide
+Bor_dem_moll <-projectRaster(ras1_cr,crs=proj_moll)
+persp(Bor_dem_moll, xlab="Easting", ylab="Northing",
+      zlab="elevation", main="Elevation model of Borneo",
+      r=1, d=5.5, expand=0.1, ticktype="detailed")
+```
+<br><br>
+
+### Raster Stacks
+
+A raster stack is a collection of RasterLayer objects
+with the same spatial extent and resolution, similar to a geodatabase. 
+Go into the maps-folder
+and check what is inside:
+
+```{r}
+# gives names and full path of file
+files.full <- list.files(path = maps_wd, pattern = '.asc$',
+                         full.names = TRUE )
+# files.full # check also 
+files.full[1:2]
+
+# names only
+files.rel <- list.files(path = maps_wd, pattern = '.asc$',
+                        full.names = FALSE )
+files.rel[1:2]
+```
+
+<br><br>
+
+#### Working with stacks 
+
+The advantage is, that you do not need to apply a command to each raster map 
+separately, but can do it 'all in one'. E.g., We can set the crs of each 
+single raster in just one line. In the following, we *stack* four maps in
+a 'geodatabase' called 'predictors'. Check the .doc for a description of
+the layers. In the following, we select 4 spatial layers:
+
+```{r}
+predictors <- stack(x = files.full[c(9, 12, 22, 24)])
+projection(x = predictors) # crs(predictors)
+projection(x = predictors) <- CRS(projargs = "+proj=longlat +datum=WGS84")
+```
+<br>
+A raster stack contains the single raster layers in a list
+```{r}
+predictors@layers # this is a list! Address single layers with [[ ]]
+```
+<br>
+Plotting just one layer:
+```{r}
+plot(predictors@layers[[4]])
+```
+
+<br><br>
+
+#### Plotting stacks 
+
+With base plot
+
+```{r}
+plot(x = predictors)
+```
+<br>
+
+With tmap. 
+This is standardizing the legend to the min and max of all layers, which is 
+problematic if maps are not in the same units. That's why you cannot see the
+information in two of the maps:
+```{r}
+tmap_mode(mode = "plot")
+tm_shape(shp = predictors) + tm_raster()
+```
+<br>
+```{r}
+tmap_mode(mode = "view")
+tm_shape(shp = predictors) + tm_raster()
+```
+
+<br><br><br><br><br><br>
+
+#### Extract values from stacks
+
+Violinplots for summary statistics
+```{r}
+bwplot(x = predictors[[c(1, 2)]]) # bwplot(predictors)
+# n.b. double [[ ]] because stack is a list of spatial rasters
+```
+<br><br>
+For advanced users: More beautiful violinplots can be found in the YaRrr package 
+(called pirate plots: https://bookdown.org/ndphillips/YaRrr/pirateplot.html)
+or simply in ggplot2. For this, we need to transform the data first:
+```{r}
+raster_df <- na.omit(data.frame(values(predictors[[c(1,3)]])))
+raster_names <- names(raster_df)
+raster_ct    <- dim(raster_df)[1]
+df2 <- data.frame(val = c(raster_df[,names(raster_df)[1]], 
+                          raster_df[,names(raster_df)[2]]))
+df2$grp <- rep(raster_names , each = raster_ct)
+head(df2)
+
+#take a subsample of the data to not crash your PC:
+a <- sample(x=nrow(df2), size=1000, replace = FALSE) 
+df3 <- df2[a,]
+```
+
+```{r}
+p <- ggplot(df3,aes(x=grp,y=val))
+p + geom_violin(scale = "width",fill = "grey80", colour = "#3366FF") + 
+    geom_boxplot(width=0.2) + 
+    geom_jitter(height = 0, width = 0.05, alpha=0.2, size=3,colour='blue')
+```
+<br>
+Retrieve metrics/ statistics from the rasters:
+```{r}
+#- Extract information from all rasters in one command
+# cellStats(predictors, 'mean')
+round(x = cellStats(x = predictors, stat = 'mean'), digits = 2)
+```
+<br><br>
+
+### Data export
+
+Save the raster (not the plot...): There are many exchange formats for rasters. 
+The best would be GeoTiff, which also saves the projection and is smaller than 
+ascii. However, for modelling
+e.g. in MaxEnt, the raster maps are needed in ascii-format.
+```{r}
+writeRaster(x = hillsh, 
+            filename = paste0(output_wd,"/hillshade.asc"), 
+            format = "ascii",
+            overwrite = TRUE, 
+            NAflag = -9999)
+```
+<br><br>
+
+### Manipulating rasters
+
+Do any kind of raster algebra
+```{r}
+new_ras <- ras1 + ras24 + 100
+plot(x = new_ras, col = rev(rainbow(5)))
+```
+<br>
+
+Changing cell size use aggregate() or resample().
+```{r}
+# collapse 10*10 cells into 1 using mean:
+ras1_agg <- aggregate(x=ras1,fact=10, fun= mean) 
+plot(ras1_agg)
+```
+
+
+<br><br>
+
+#### Change and query raster values
+
+```{r}
+# convert ras1 to degree Celsius units (divide by 10)
+range(values(ras1), na.rm = TRUE)
+mean.t.c <- ras1 / 10
+range(values(mean.t.c), na.rm = TRUE)
+# find areas with mean annual temp >= 25 deg C
+mean.t.c.25 <- mean.t.c >= 25
+```
+<br><br>
+ Have a look at the binary plot
+
+```{r}
+plot(x = mean.t.c.25)
+```
+<br><br>
+
+#### Accessing cell values
+
+Remember the function **extract()**
+
+```{r}
+cells <- cellFromRowCol(object = ras1_cr, row = 5, col = 1:3)
+cells    #gives cell ID number, the index/ rownumber!!!
+extract(x = ras1_cr, y = cells) # gives cell values!
+plot(x = ras1_cr)
+points(x = coordinates(obj = ras1_cr)[cells,], col = 'blue')
+```
+<br><br>
+   
+Extract rastervalues from all rasters at once (raster stack):
+
+This is very important if you want to create your master table, i.e. based 
+on the xy-coordinates of your species sightings (ie. GPS point locations), 
+you could extract the important environmental predictors at that location.
+```{r}
+pred_dat <-   extract(predictors, cells) 
+pred_dat
+test <- data.frame(cells,pred_dat)
+test
+```
+
+
+<br> <br><br><br>
+
+Change raster values:
+
+```{r}
+xy = xyFromCell(object = ras1_cr, cell = cells) # coordinates(ras1_cr)[cells,]
+extract(x = ras1_cr, y = xy)          # extract(ras1_cr, cells)
+
+# Change values e.g. for adding forest
+# take care! irreversible! better work on a copy!
+copy_ras <- ras1_cr
+copy_ras[cells] <- 250
+plot(x = copy_ras)
+```
+<br><br>
+
+#### Compute distance to points
+
+```{r}
+# calculate distance
+my_dist <- distanceFromPoints(object = ras1_cr,xy = xy)
+plot(x = my_dist) #units?
+
+```
+
+```{r}
+# nicer plot adding the points from which a distance should be computed.
+xy_sf <- st_as_sf(x = data.frame(xy), 
+                  coords = c("x","y"),
+                  crs = 4326,
+                  sf_column_name = "geometry" ) 
+
+tmap_mode(mode = "plot")
+tm_shape(shp = my_dist) + tm_raster(n = 100,
+                                    palette = rev(grDevices::terrain.colors(100)),
+                                    legend.show = FALSE) +
+  tm_shape(shp = xy_sf) + tm_dots(size = 1)
+```
+<br><br>
+
+   
+Calculate distance from many points
+```{r}
+cells1 <- c(cells, 250, 360)
+xy=xyFromCell(ras1_cr, cells1)#=coordinates(Bor_mat_cr)[cells,]
+my_dist <- distanceFromPoints(ras1_cr,xy)
+plot(my_dist) #units?
+
+```
+<br><br>
+
+
+## Vector data / shapefiles
+
+### Polygons and lines
+
+#### Import shapefiles
+
+Currently, there are two packages *sp* and *sf* (standing for simple features),
+both with still important functionality. However, sf is much easier to use and handle. 
+The suggestion currently is: learn both!
+https://www.r-bloggers.com/2018/03/should-i-learn-sf-or-sp-for-spatial-r-programming/
+In the following, the most important commands are provided for the sf-package,
+and if necessary, also for the sp-package:
+```{r}
+# Border of countries and provinces of Borneo
+# - only loading columns 1:3, 5, 7, 17, 18 of attribute table:
+Borneo_shp <- st_read(dsn = maps_wd,
+                      layer = "borneo_admin",
+                      stringsAsFactors = FALSE)[, c(1:3, 5, 7, 17, 18)]
+# Protected areas (National Parks, Nature Reserves, Forest Reserves)
+PA_shp     <-  st_read(dsn = maps_wd,
+                   layer = "Bor_PA",
+                   stringsAsFactors = FALSE)[, c(1:4)]
+# Main rivers
+River_shp  <- st_read(dsn = maps_wd,
+                     layer = "sn_100000",
+                     stringsAsFactors = FALSE)
+
+## the 'old' sp package would work with that command:
+Admin_shp <- readOGR(dsn=maps_wd, layer="borneo_admin",
+              stringsAsFactors=FALSE)[,c(1:3,5,7,17,18)]
+## transformations
+Admin_sf <- as(Admin_shp, "sf") ## from sp object to sf object 
+Admin_sp <- as(Admin_sf, "Spatial") ## from sf to sp object
+```
+<br><br>
+
+#### Working with vector data
+
+Accessing simple features - easy handling, similar to data.frames
+```{r}
+#Please note the similarity to accessing info from rasters.
+str(object = extent(PA_shp))
+extent(PA_shp)@xmin
+names(x = PA_shp) #returns column names of a.t.
+```
+<br><br>
+
+Accessing SpatialPolygonsDataFrames:
+```{r}
+# Much more complex than sf-objects.
+class(Admin_shp)
+str(object = extent(Admin_shp))
+extent(Admin_shp)@xmin
+names(x = Admin_shp) #returns column names of a.t.
+```
+
+<br><br>
+
+Summarising spatial information for each column of attribute table [a.t.]:
+
+```{r}
+summary(object = PA_shp)
+str(object = PA_shp)
+PA_shp
+attributes(x = PA_shp)
+```
+<br>
+
+Have a look at the content
+
+```{r}
+head(x = PA_shp)   
+tail(x = PA_shp)
+```
+<br>
+
+Retrieving information of a.t. - recap working with data.frames 
+from Day1_R-Intro course.
+
+```{r}
+PA_shp[1, ] #returns first entry (row) of all 4 columns
+```
+
+```{r}
+PA_shp[, 2] # returns summary of col only!
+```
+
+```{r}
+# PA_shp$NAME_ENG #returns a long list  
+head(x = PA_shp$NAME_ENG) #using fct head() to only show the first 6 entries
+```
+
+```{r}
+PA_shp[1, 1] # = PA_shp$SITE_ID[1]
+PA_shp[2, 3] # = PA_shp$COUNTRY[2]
+
+which(x = PA_shp$COUNTRY == 'Malaysia')
+```
+
+<br>
+
+The following returns the row indices of the data frame or a.t., respectively:
+```{r}
+which(x = PA_shp$COUNTRY == 'Malaysia')
+```
+
+<br>
+
+#### Visualising vector data
+
+You can use many packages, e.g. ggplot2, for sf-objects:
+https://www.r-spatial.org/r/2018/10/25/ggplot2-sf.html.
+However, it does NOT work for sp-objects (SpatialPolygonsDataFrame ).
+```{r}
+ggplot(data = PA_shp) +
+    geom_sf() + 
+    xlab("Longitude") + ylab("Latitude") +
+    ggtitle("Protected areas")
+```
+<br><br>
+
+or tmap
+```{r}
+tmap_mode(mode = "plot")
+tm_shape(shp = PA_shp[, 1]) + tm_polygons(col = "SITE_ID",
+                              palette = grDevices::terrain.colors(5),
+                              style = "quantile") # color scheme by quantiles
+```
+<br><br>
+
+Interactive mode
+```{r}
+tmap_mode(mode = "view")
+tm_shape(shp = PA_shp[, 1]) + 
+  tm_polygons(col = "SITE_ID",
+                    palette = grDevices::terrain.colors(5),
+                    style = "quantile" # color scheme  by quantiles
+                    )
+```
+<br><br>
+
+It is also possible to use a simple plot() function for sf-objects. However, mind that this
+object has 7 columns, so each column holds information that will be plotted, i.e.
+you will plot 7 single plots. So do a little transformation:
+either plot just one column, or define it as spatial:
+
+```{r}
+# plot(Borneo_shp) not run
+plot(Borneo_shp[,1]) # select column
+```
+
+```{r}
+plot(as(Borneo_shp, "Spatial")) #plot geometry without information of a col
+```
+
+
+And for the sp-package:
+
+Here, the basic plot function works.
+```{r}
+plot(Admin_sp)
+```
+
+There is also a special function for plotting sp-objects, however, also here, you
+need to select which information you want to plot.
+```{r}
+# spplot(Admin_sp) #Don't do that! Each column of the a.t. will be plotted
+head(Admin_sp)
+spplot(Admin_sp[6]) # only plot one of the geometries, coloured e.g. by shape_length
+```
+
+Plot a detail on the map - Plot of a single selected protected area :
+```{r}
+tmap_mode(mode = "plot")
+tm_shape(shp = Borneo_shp) + tm_polygons(border.col = "deepskyblue4") +
+  tm_shape(PA_shp[,1]) + tm_polygons(border.col = "black") +
+  tm_shape(PA_shp[1, ]) + tm_polygons(border.col = "red")
+```
+
+<br><br>
+
+#### Small exercises
+
+Simplify your life! Work with subsets, select Malaysia, save and plot as shapefile
+
+```{r}
+Mal_PA_shp <- subset(PA_shp, PA_shp$COUNTRY == 'Malaysia')
+st_write(obj = Mal_PA_shp, 
+         dsn = output_wd, 
+         layer = 'test',
+         driver = 'ESRI Shapefile', 
+         delete_layer = TRUE)
+
+tmap_mode(mode = "plot")
+tm_shape(shp = Borneo_shp) + tm_polygons(border.col = "blue") +
+  tm_shape(shp = Mal_PA_shp) + tm_polygons(col = "green")
+```
+<br><br>
+
+Extract elevation per PA and save average to a.t. as a new column
+
+```{r}
+fewPA <- Mal_PA_shp[c(1:5), 1]
+tmp <- extract(x = ras24, y = fewPA)   # returns a list - each element contains
+                                       # the elevation raster cells (ras24)
+str(tmp)
+#lapply(tmp, FUN = summary)
+```
+
+```{r}
+# Append mean elevation:
+fewPA$mean_elevation <- round(x = unlist(lapply(tmp, FUN = mean, na.rm = T)))
+fewPA
+```
+<br><br>
+
+#### Geospatial calculation
+
+Using the 'old' sp-package and package rgeos, commands for calculating 
+properties of spatial objects were: gArea, gLength, gDistance. 
+Other often used GIS functions relate to basic spatial operations, such as
+gBuffer, gCentroid, gDifference, gUnion, and gIntersection, 
+gUnionCascaded (= dissolve function) and gSimplify.
+Spatial queries were gIntersects, gContains, gIsValid.
+http://www.nickeubank.com/wp-content/uploads/2015/10/
+    RGIS2_MergingSpatialData_part2_GeometricManipulations.html. <br>
+
+The new sf-package has the same functionality, with functions starting with 'st_',
+e.g. st_buffer, st_intersection etc.<br>
+https://cran.r-project.org/web/packages/sf/vignettes/sf1.html
+<br>
+https://geocompr.robinlovelace.net/spatial-operations.html
+<br>
+
+
+##### Spatial query
+
+Returns the area in square meters
+```{r}
+# st_area(x = Borneo_shp) #returns long vector
+head(st_area(x = Borneo_shp))
+
+```
+<br>
+
+##### Spatial transformation (projection)
+
+```{r}
+Borneo_shp_moll <-  st_transform(Borneo_shp, c("+proj=moll +datum=WGS84"))
+class(Borneo_shp_moll) #sf object, data.frame!
+```
+<br>
+
+```{r}
+tmap_mode(mode = "plot")
+tm_shape(shp = Borneo_shp_moll) + tm_polygons(border.col = "blue") #do you see the difference?
+head(st_area(x = Borneo_shp_moll)) # units?
+```
+
+
+<br>
+
+Example: Area of Malaysia in Borneo.
+
+```{r}
+Mal_Borneo_shp <- subset(Borneo_shp_moll, Borneo_shp_moll$NAME_0 == 'Malaysia')
+head(st_area(x = Mal_Borneo_shp)/1000000) # or / 1e6
+# or use set_units to change the units from m^2 to km^2
+head(set_units(x = st_area(x = Mal_Borneo_shp), value = km^2) ) 
+```
+<br>
+
+Example: Calculate area of a polygon and add the area of a polygon as new column to a.t.
+```{r}
+st_area(x = Borneo_shp_moll[3, ]) # for a single polygon
+head(st_area(x = Borneo_shp_moll, byid = TRUE)) #for all polygons
+
+area_km2 <- set_units(x = st_area(x = Borneo_shp_moll, byid = TRUE), value = km^2)
+Borneo_shp_moll = data.frame(Borneo_shp_moll, area_km2)
+head(x = Borneo_shp_moll)
+```
+<br><br>
+The following for sp objects:  
+```{r}
+#gArea(Borneo_shp_moll, byid=TRUE)/1e6 # does not work, as Borneo_shp_moll is sf-object!
+head(gArea(Admin_sp, byid=TRUE)/1e6) # what does the error message mean? -> check crs!
+Admin_sp_moll <- spTransform(Admin_sp, c("+proj=moll +datum=WGS84"))
+head(gArea(Admin_sp_moll, byid=TRUE)/1e6) # now it works!
+```
+<br><br>
+
+### Points
+
+#### Import spatial points
+
+Usually, shapefiles come with a .proj file defining the projection, but not
+always. Please always check whether the projection is set.
+```{r}
+pt_shp <- st_read(dsn = paste(recs_wd, 'FCsim.shp', sep = '/'))
+pt_shp  # crs is missing!
+st_crs(pt_shp) = 4326 # set it with command st_crs
+pt_shp
+```
+
+Spatial points are defined by two columns with x and y coordinates, can be 
+imported as normal data.frames and then converted to spatial objects.
+```{r}
+pt_file <- paste(recs_wd, 'MyNewSpecies.csv', sep = '/')
+df_recs <- read.table(file = pt_file, header = TRUE, sep = ',')
+class(x = df_recs)
+head(x = df_recs)
+```
+See below of how to convert a data.frame into a spatial sf-object.
+<br>
+
+#### Plot the points
+
+Simple data frames with location information, as long as the coordinates are the same, 
+can also be plotted in space. We first plot the polygon
+```{r}
+plot(x = as(Borneo_shp, "Spatial"), col = 'grey', border = 'white') # polygon
+points(x = df_recs$long, df_recs$lat, cex = 0.5, pch = 15) #simple d.f.! 
+plot(x = as(pt_shp, "Spatial"), col = 'blue', add = T) 
+```
+<br>
+
+Tmap can only handle spatial objects, so the data.frame df_recs needs to be
+converted into an sf-object first. You have to define which columns contain the coordinates.
+```{r}
+recs_sf <- st_as_sf(x = data.frame(df_recs),
+                       coords = c("long", "lat"),
+                       crs = 4326,
+                       sf_column_name = "geometry" )
+```
+<br>
+
+Plot it with tmap.
+```{r}
+
+tmap_mode(mode = "plot")
+tm_shape(shp = Borneo_shp) + tm_polygons(col = "grey",
+                                         border.col = "white") +
+  tm_shape(shp = recs_sf)  + tm_dots(shape = 3, size = 0.5) +
+  tm_shape(shp = pt_shp)   + tm_dots(col = "blue") 
+```
+<br>
+
+#### Spatial overlay - vector data
+
+```{r}
+# retrieve the geometry (location) indices of PA_shp at
+# the locations of sp_recs: which points are in PA_shp
+insidePA <- st_intersection(x = recs_sf, y = PA_shp) 
+```
+<br>
+
+#### Spatial overlay - vector and raster
+
+```{r}
+# for a RASTER: extract mean ann. temp. from ras1
+# and add it to a.t.
+mean_t <- extract(x = ras1, y = recs_sf)
+recs_sf$mean_t <- mean_t
+mean(x = recs_sf$mean_t) # hist(sp_recs_sf$mean_t)
+
+```
+<br>
+
+#### Saving vector data
+
+```{r}
+st_write(obj = insidePA,
+         dsn = output_wd, 
+         layer = 'inPA',
+         driver ='ESRI Shapefile',
+         delete_layer = TRUE)
+```
+
+<br><br><br>
+
+At the end, a beautiful plot
+```{r}
+tmap_mode(mode = "plot")
+tm_shape(shp = hillsh) + 
+  tm_raster(palette = "Greys",
+            legend.show = FALSE) +
+  tm_shape(shp = ras24) + 
+  tm_raster(palette = terrain.colors(25),
+            alpha = 0.3,
+            legend.show = FALSE) +
+  tm_shape(shp = River_shp) + 
+  tm_lines(col = "dodgerblue3") +
+  tm_shape(shp = recs_sf) + 
+  tm_dots(shape = 16, 
+          size = 0.1) +
+  tm_shape(shp = insidePA) + 
+  tm_dots(col = "red",
+          size = 0.5,
+          shape = 3) +
+  tm_shape(shp = PA_shp) + 
+  tm_polygons(border.col = "white", 
+              alpha = 0) +
+  tm_layout(title = "END OF SESSION", 
+            title.color = "darkgrey",
+            title.position = c(0.01,0.9),
+            title.size = 2)
+```
+<br><br><br>
+
+# END
+Very helpful when going back to old scripts or using scripts of others.
+```{r}
+sessionInfo()
+```
+
