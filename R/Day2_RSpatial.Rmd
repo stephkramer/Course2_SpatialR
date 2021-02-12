@@ -1,7 +1,8 @@
 ---
 title: "Tutorial Part II - R goes spatial"
 author: "Stephanie Kramer-Schadt"
-date: "`r Sys.Date()`" # "`r Sys.setlocale('LC_TIME','C'); paste('Last Update', format(Sys.time(), '%B %e, %Y')) `"
+date: "`r Sys.setlocale('LC_TIME','C'); paste('Last Update', format(Sys.time(), '%B %e, %Y')) `" 
+        #"`r Sys.Date()`" # 
 output:
   html_document:
     code_folding: show
@@ -19,7 +20,7 @@ editor_options:
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
-#knitr::opts_knit$set(root.dir = 'c:/Users/kramer/Dropbox/_Geodata_Borneo')
+knitr::opts_knit$set(root.dir = 'C:/Users/kramer/PopDynIZW Dropbox/Steph Kramer/_GitHub')
 ```
 
 # Introduction
@@ -89,7 +90,8 @@ S Kramer-Schadt, et al.2016. Raffles Bulletin of Zoology, Supplement No. 33: 18â
 
 6. Infos about simple features in R (sf package) 
 *  https://r-spatial.github.io/sf/index.html   
-*  and nice intro: https://oliviergimenez.github.io/introspatialR/#1  
+*  and nice intro: https://oliviergimenez.github.io/introspatialR/#1
+*  geocomputation: https://geocompr.robinlovelace.net/spatial-operations.html
 
 7. Use EPSG codes as unique and specific identifies of your coordinate reference systsem instead of writing projection details. 
    See http://spatialreference.org/ for EPSG codes or
@@ -119,12 +121,13 @@ S Kramer-Schadt, et al.2016. Raffles Bulletin of Zoology, Supplement No. 33: 18â
 
 
 # Basics
+
 ## How to install...
 
 ```{r}
 pkgs = c("here", "terra", "sp", "sf", "dismo", "raster", "GISTools",  "rgdal", 
          "maptools", "rgeos","rgl","rasterVis", "ellipse", "units", "tmap", 
-         "viridis","dplyr", "gdistance","vegan", 
+         "viridis","dplyr", "gdistance","vegan", "gridExtra",
          "psych", "iNext", "BAT", "ggplot2") # package names
 # install.packages(pkgs)
 # update.packages()
@@ -154,6 +157,7 @@ library(maptools)
 library(viridis) # nice colour palettes
 library(units)
 library(ggplot2)
+library(gridExtra)
 ```
 
 ## How to call help 
@@ -179,41 +183,76 @@ methods(generic.function = 'plot') #S3 type method
 
 ## Assign the workspace
 
-Please note: if you follow the d6-package installation 
-https://github.com/EcoDynIZW/d6
-and have stored all your geo-data in the respective folder (.../data-raw/geo-raw),
-there is no need to set the root folder. The root folder automatically
-is the project folder.
+Set your root directory, e.g. the directory under which you store everything
+you need for this course, i.e. the data and the R-Scripts. You could name it
+'TUB_BD_Course'.
+
+Create the subfolders relative to root_wd. Please adjust to your setup. A possible
+folder structure could be: 
+<br>
+
+-- TUB_BD_Course
+<br>
+----- R          # store here all your scripts, i.e. this script day_2.R,..
+.<br>
+----- _Data_Borneo    # the Borneo data 
+<br>
+-------- BaseMaps      # geo data, found in _Data_Borneo
+<br>
+-------- BaseRecords   # observation data, found in _Data_Borneo 
+<br>
+
+<br>
+
 ```{r}
 # adjust the working directory [wd]
 here()   # where are you? -> you should go to your root/ parent directory
 getwd()  # alternative fct
 
-mypath <- here()
-root_wd <- dirname(mypath) # dirname gives the parent/ root dir
-
-# or set it 'by hand' (less elegant), e.g.
-# root_wd <- setwd("C:/Users/kramer/PopDynIZW Dropbox/Steph Kramer/_GitHub")
+# Set your OWN root directory, the following is just an example of how to do it:
+root_wd <- setwd("C:/Users/kramer/PopDynIZW Dropbox/Steph Kramer/_GitHub")
 ```
 <br>
 
-Assign the subfolders relative to wd. (please adjust to your setup)
+Now, we assign the path to these folders relative to the root directory:
+<br>
+
+-- root_wd      <br>
+----- R           <br>
+----- dbor_wd    <br>
+-------- maps_wd    <br>
+-------- recs_wd    <br>
+
 
 ```{r}
 #today, we start with Borneo
-work_wd   <- paste0(root_wd, "/", "_DataBorneo") # mind difference paste0() and paste()
-maps_wd   <-  paste(work_wd, "/", "BaseMaps",    sep = '')
-recs_wd   <-  paste(work_wd, "/", "BaseRecords", sep = '')
+dbor_wd     <- paste0(root_wd, "/", "_DataBorneo") # mind difference paste0() and paste()
+  maps_wd   <-  paste(dbor_wd, "/", "BaseMaps",    sep = '')
+  recs_wd   <-  paste(dbor_wd, "/", "BaseRecords", sep = '')
 ```
 <br>
-Create an output folder where you can temporarily store your results with *dir.create*.
-Mind: the folder structure already exists when using the d6-package. 
+Create an output folder where you can temporarily store your results (anything
+you plot, create, want to save,....) with *dir.create*.
 
 ```{r}
 output_wd <- paste0(dirname(root_wd), "/", "_A_Borrar")
 if (!dir.exists(output_wd)) {dir.create(output_wd)}
 
 ```
+Finally, your folder structure will look like this:
+
+-- TUB_BD_Course <br>
+----- R          # store here all your scripts, i.e. this script day_2.R,...
+<br>
+----- output     # for everything you create/ plot/ save
+<br>
+-------- _Data_Borneo    # the Borneo data
+<br>
+-------- BaseMaps      # geo data, found in _Data_Borneo 
+<br>
+-------- BaseRecords   # observation data, found in _Data_Borneo 
+<br>
+
 <br><br>
 
 
@@ -376,7 +415,7 @@ ras1_cr@extent@xmin
    # xmin(ras1_cr) # xmin(extent(ras1))
    # ras1_cr@extent # extent(ras1_cr) # attr(ras1_cr,'extent')
 ras1_cr@ncols        # ncol(ras1_cr) !n.b. cols vs. col!
-ras1_cr@data@values  # values(ras1_cr)
+head(ras1_cr@data@values)  # values(ras1_cr)
 ras1_cr@crs
    # crs(ras1_cr) # projection(ras1_cr) !=CRS(ras1_cr)
 
@@ -403,7 +442,8 @@ head(x = coordinates(obj = ras1_cr), n = 10) # command from package 'sp'
 
 ### Terrain computation
 
-Create a hillshade (3D look) based on topography using slope and aspect:
+We will now work with the digital elevation model (DEM) ras24 and create
+a hillshade (3D look) based on topography using slope and aspect:
 - simulates a 3D surface
 - computes shaded relief values for a raster surface
 ```{r}
@@ -419,6 +459,7 @@ Plot the hillshade
 ```{r}
 plot(Bor_hs, col=grey(0:100/100), legend=FALSE)
 ```
+<br>
 Other very useful terrain calculations are cost surfaces, cost distances
 and least cost path, e.g. for corridor calculations. We will do that in
 another course.
@@ -511,6 +552,7 @@ image(ras24, col=terrain.colors(25,alpha=0.3),add=T)
 points(coordinates(ras1_cr),cex=0.1,pch='+')
 plot(extent(ras1_cr),add=T, col='red')
 ```
+<br>
 Now open the image-plot with the zoom icon in a separate window and change the size.
 You will see that the different layers are still plotted on top of each other.
 <br>
@@ -536,7 +578,8 @@ the area around the red box:
 ##### composite plot with tmap
 
 In the following, we will create a SpatialPointDataFrame (sf-package) from the
-small clipped/ cropped raster and plot it on top of the hillshade
+small clipped/ cropped raster and plot it on top of the hillshade. Use the
+possiblitiy of selecting/ unselecting different layers (layer icon on the left).
 
 ```{r}
 hillsh <- Bor_hs
@@ -550,25 +593,30 @@ ras1_cr_sf <- st_as_sf(data.frame(coordinates(ras1_cr)), # create dataframe of c
 
 # interactive plot
 tmap_mode(mode = "view")
-tm_shape(shp = hillsh, raster.downsample= TRUE)  + tm_raster(palette = "Greys") +
-  tm_shape(shp = ras24, raster.downsample= TRUE) + tm_raster(palette = grDevices::topo.colors(20),
-                                    alpha = 0.3) +
-  tm_shape(shp = ras1, raster.downsample= TRUE) + tm_raster(palette = grDevices::rainbow(10),
-                                    alpha = 0.3) +
-  tm_shape(shp = ras1_cr_sf) + tm_dots(shape = 20, 
-                                       size = 0.01) 
-            ## shape arg: 20 is equal to o, in view mode  only dots and circles allowed
+tm_shape(shp = hillsh, raster.downsample= TRUE)  +  
+         tm_raster(palette = "Greys") +
+  tm_shape(shp = ras24, raster.downsample= TRUE) + 
+         tm_raster(palette = grDevices::topo.colors(20),alpha = 0.3) +
+  tm_shape(shp = ras1, raster.downsample= TRUE) + 
+         tm_raster(palette = grDevices::rainbow(10), alpha = 0.3) +
+  tm_shape(shp = ras1_cr_sf) + tm_dots(shape = 20, size = 0.01) 
 ```
 
-```{r}
-# static plot
-tmap_mode(mode = "plot")
-tm_shape(shp = hillsh, raster.downsample= TRUE) + tm_raster(palette = "Greys") +
-  tm_shape(shp = ras24, raster.downsample= TRUE) + tm_raster(palette = grDevices::terrain.colors(10),
-                                     alpha = 0.3) +
-  tm_shape(shp = ras1_cr_sf) + tm_dots(shape = 3, # 3 is equal to +
-                                        size = 0.5) 
+What do the shape-arguments mean, e.g. shape = 20? Have a look here at the symbols:
+https://ggplot2.tidyverse.org/articles/ggplot2-specs.html?q=shape#sec:shape-spec
+<br>
+Unfortuantely, in tmap you can only use shape = 1 and shape =20, only circles are plotted
+<br>
 
+
+```{r}
+# static plot  
+tmap_mode(mode = "plot")
+tm_shape(shp = hillsh, raster.downsample= TRUE) + 
+  tm_raster(palette = "Greys") +
+tm_shape(shp = ras24, raster.downsample= TRUE) +
+  tm_raster(palette = grDevices::terrain.colors(10), alpha = 0.3) +
+tm_shape(shp = ras1_cr_sf) + tm_dots(shape = 1, size = 0.05) 
 ```
 <br> <br>
 
@@ -657,7 +705,7 @@ plot(x = predictors)
 ```
 <br>
 
-With tmap. 
+With tmap: 
 This is standardizing the legend to the min and max of all layers, which is 
 problematic if maps are not in the same units. That's why you cannot see the
 information in two of the maps:
@@ -666,12 +714,8 @@ tmap_mode(mode = "plot")
 tm_shape(shp = predictors) + tm_raster()
 ```
 <br>
-```{r}
-tmap_mode(mode = "view")
-tm_shape(shp = predictors) + tm_raster()
-```
-
-<br><br><br><br><br><br>
+<br>
+<br><br><br><br><br>
 
 #### Extract values from stacks
 
@@ -680,10 +724,13 @@ Violinplots for summary statistics
 bwplot(x = predictors[[c(1, 2)]]) # bwplot(predictors)
 # n.b. double [[ ]] because stack is a list of spatial rasters
 ```
-<br><br>
+<br>
+Again, these do not look nice becuase of the different axis scaling.
+<br>
 For advanced users: More beautiful violinplots can be found in the YaRrr package 
 (called pirate plots: https://bookdown.org/ndphillips/YaRrr/pirateplot.html)
-or simply in ggplot2. For this, we need to transform the data first:
+or simply in ggplot2. For this, we need to transform the RasterLayer data 
+into a data.frame first:
 ```{r}
 raster_df <- na.omit(data.frame(values(predictors[[c(1,3)]])))
 raster_names <- names(raster_df)
@@ -693,7 +740,7 @@ df2 <- data.frame(val = c(raster_df[,names(raster_df)[1]],
 df2$grp <- rep(raster_names , each = raster_ct)
 head(df2)
 
-#take a subsample of the data to not crash your PC:
+#take a random subsample of the data to not crash your PC when plotting:
 a <- sample(x=nrow(df2), size=1000, replace = FALSE) 
 df3 <- df2[a,]
 ```
@@ -704,6 +751,51 @@ p + geom_violin(scale = "width",fill = "grey80", colour = "#3366FF") +
     geom_boxplot(width=0.2) + 
     geom_jitter(height = 0, width = 0.05, alpha=0.2, size=3,colour='blue')
 ```
+<br>
+Since the untis are so different, it makes more sense in this case 
+to plot them separately, using include 'facet_grid' and scales = free.
+
+```{r}
+p <- ggplot(df3,aes(x=grp,y=val))
+p + geom_violin(scale = "width",fill = "grey80", colour = "#3366FF") + 
+    geom_boxplot(width=0.2) + 
+    geom_jitter(height = 0, width = 0.05, alpha=0.2, size=3,colour='blue') +
+    facet_grid(grp ~ ., scales = "free")  
+
+# save the last plot
+ggsave(paste0(output_wd,"/savedggplot.pdf"),width = 5, height = 5)
+
+```
+
+<br>
+...or plot them separately using grid.arrange from package *gridExtra*:
+```{r}
+df3_bio9 <- subset(df3, df3$grp == 'bio_asc_09')
+df3_bio24 <- subset(df3, df3$grp == 'bio_asc_24')
+
+p1 <- ggplot(df3_bio9,aes(x=grp,y=val)) +
+      geom_violin(scale = "width",fill = "grey80", colour = "#3366FF") + 
+      geom_boxplot(width=0.2) + 
+      geom_jitter(height = 0, width = 0.05, alpha=0.2, size=3,colour='blue') 
+p2 <- ggplot(df3_bio24,aes(x=grp,y=val)) +
+      geom_violin(scale = "width",fill = "grey80", colour = "#3366FF") + 
+      geom_boxplot(width=0.2) + 
+      geom_jitter(height = 0, width = 0.05, alpha=0.2, size=3,colour='blue')
+
+grid.arrange(p1, p2, nrow = 1)
+```
+<br>
+check here for how ggplot2 works if you want to make really nice plots:
+*https://github.com/rstudio/cheatsheets/blob/master/data-visualization-2.1.pdf
+<br>
+or get inspiration here:
+<br>
+*https://www.cedricscherer.com/2019/08/05/a-ggplot2-tutorial-for-beautiful-plotting-in-r/
+<br>
+*https://www.r-graph-gallery.com/
+<br><br><br>
+
+Back to spatial R.
 <br>
 Retrieve metrics/ statistics from the rasters:
 ```{r}
@@ -730,20 +822,28 @@ writeRaster(x = hillsh,
 
 ### Manipulating rasters
 
-Do any kind of raster algebra
+Do any kind of raster algebra:
 ```{r}
 new_ras <- ras1 + ras24 + 100
-plot(x = new_ras, col = rev(rainbow(5)))
 ```
 <br>
 
-Changing cell size use aggregate() or resample().
+For changing cell size use aggregate() or resample():
 ```{r}
-# collapse 10*10 cells into 1 using mean:
-ras1_agg <- aggregate(x=ras1,fact=10, fun= mean) 
-plot(ras1_agg)
+# collapse 20*20 cells into 1 using function 'mean':
+ras1_agg <- aggregate(x=ras1,fact=20, fun= mean) 
 ```
 
+<br>
+
+We finally plot the two new rasters next to each other:
+
+```{r}
+par(mfrow=c(1,2)) # recap from course 1: plots in 1 row and 2 columns
+plot(x = new_ras, col = rev(rainbow(5)))
+plot(ras1_agg)
+par(mfrow=c(1,1)) # remember to set it back to the default
+```
 
 <br><br>
 
@@ -767,29 +867,52 @@ plot(x = mean.t.c.25)
 
 #### Accessing cell values
 
-Remember the function **extract()**
+Remember the function **extract()**. In the following, we extract from the
+small raster the first three values (= col 1-3 ; longitude or x-axis) 
+at line 5 (= row 5 ;latitude or y-axis).
 
 ```{r}
 cells <- cellFromRowCol(object = ras1_cr, row = 5, col = 1:3)
 cells    #gives cell ID number, the index/ rownumber!!!
 extract(x = ras1_cr, y = cells) # gives cell values!
 plot(x = ras1_cr)
+# to plot the points on top, insert the 'cells' index into 
+# the dataframe of the coordinates of the RasterLayer object ras1_cr
 points(x = coordinates(obj = ras1_cr)[cells,], col = 'blue')
 ```
 <br><br>
    
 Extract rastervalues from all rasters at once (raster stack):
-
+<br>
 This is very important if you want to create your master table, i.e. based 
 on the xy-coordinates of your species sightings (ie. GPS point locations), 
-you could extract the important environmental predictors at that location.
+you could extract the important environmental predictors at that location. 
+<br>
+We do that for an area in the center of Borneo. For this, we first get the
+row and column indices of the center of the large Borneo map, e.g. ras1, and
+5 x 5 cells in addition, i.e. a square with an area of 5 km x 5 km :
 ```{r}
-pred_dat <-   extract(predictors, cells) 
-pred_dat
-test <- data.frame(cells,pred_dat)
-test
+center_x = floor(nrow(predictors)/2) # learn about the functions round(), 
+center_y = floor(ncol(predictors)/2) #                 ceiling(), floor()
+center_x;center_y
+stack_cells <- cellFromRowCol(object = ras1, row = center_x:(center_x+5), 
+                                             col = center_y:(center_y+5) )
+head(stack_cells) 
 ```
+<br>
 
+Why are these index numbers so large? Because the counting
+starts at the upper left corner of the map and continues consecutively, i.e.
+the data (ras1@data@values) are one huge vector with length nrow * ncol !
+<br>
+
+```{r}
+# finally, extract them:
+pred_dat <-   extract(predictors, stack_cells) 
+head(pred_dat)
+mastertable <- data.frame(stack_cells,pred_dat)
+mastertable
+```
 
 <br> <br><br><br>
 
@@ -799,7 +922,7 @@ Change raster values:
 xy = xyFromCell(object = ras1_cr, cell = cells) # coordinates(ras1_cr)[cells,]
 extract(x = ras1_cr, y = xy)          # extract(ras1_cr, cells)
 
-# Change values e.g. for adding forest
+# Change values, e.g. for adding forest or creating a corridor
 # take care! irreversible! better work on a copy!
 copy_ras <- ras1_cr
 copy_ras[cells] <- 250
@@ -834,11 +957,10 @@ tm_shape(shp = my_dist) + tm_raster(n = 100,
    
 Calculate distance from many points
 ```{r}
-cells1 <- c(cells, 250, 360)
-xy=xyFromCell(ras1_cr, cells1)#=coordinates(Bor_mat_cr)[cells,]
+cells1 <- c(cells, 250, 360) # add two more points
+xy=xyFromCell(ras1_cr, cells1)# =coordinates(Bor_mat_cr)[cells,]
 my_dist <- distanceFromPoints(ras1_cr,xy)
 plot(my_dist) #units?
-
 ```
 <br><br>
 
@@ -938,8 +1060,6 @@ head(x = PA_shp$NAME_ENG) #using fct head() to only show the first 6 entries
 ```{r}
 PA_shp[1, 1] # = PA_shp$SITE_ID[1]
 PA_shp[2, 3] # = PA_shp$COUNTRY[2]
-
-which(x = PA_shp$COUNTRY == 'Malaysia')
 ```
 
 <br>
@@ -964,7 +1084,7 @@ ggplot(data = PA_shp) +
 ```
 <br><br>
 
-or tmap
+or tmap:
 ```{r}
 tmap_mode(mode = "plot")
 tm_shape(shp = PA_shp[, 1]) + tm_polygons(col = "SITE_ID",
@@ -979,8 +1099,7 @@ tmap_mode(mode = "view")
 tm_shape(shp = PA_shp[, 1]) + 
   tm_polygons(col = "SITE_ID",
                     palette = grDevices::terrain.colors(5),
-                    style = "quantile" # color scheme  by quantiles
-                    )
+                    style = "quantile") # color scheme  by quantiles
 ```
 <br><br>
 
@@ -1001,7 +1120,7 @@ plot(as(Borneo_shp, "Spatial")) #plot geometry without information of a col
 
 And for the sp-package:
 
-Here, the basic plot function works.
+Here, the basic plot function works:
 ```{r}
 plot(Admin_sp)
 ```
