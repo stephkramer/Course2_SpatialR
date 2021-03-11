@@ -38,7 +38,7 @@ data types - vector (points, lines, polygons, aka ESRI shapefiles) and raster da
 In R, these are *Spatial(Points/Lines/Polygons)DataFrame* or *RasterLayer* Objects. 
 Recently, *sf*-objects have been developed to handle vector data more easily. The
 latter can be treated like simple data.frames. Also the raster package is
-under development - called *terra* package - but the course does not yet cover this.
+under development - called *terra* package - but the course does not cover this.
 The *terra* package is especially useful for remote sensing data.
 
 In addition to different data types, the course provides sections on coordinate 
@@ -125,7 +125,7 @@ S Kramer-Schadt, et al.2016. Raffles Bulletin of Zoology, Supplement No. 33: 18â
 ## How to install...
 
 ```{r}
-pkgs = c("here", "terra", "sp", "sf", "dismo", "raster", "GISTools",  "rgdal", 
+pkgs = c("here", "sp", "sf", "dismo", "raster", "GISTools",  "rgdal", 
          "maptools", "rgeos","rgl","rasterVis", "ellipse", "units", "tmap", 
          "viridis","dplyr", "gdistance","vegan", "gridExtra",
          "psych", "iNext", "BAT", "ggplot2") # package names
@@ -148,7 +148,6 @@ library(rasterVis)
 
 # the soon up-to-date spatial packages
 library(sf)
-library(terra)
 library(tmap)
 library(dismo)
 library(GISTools)
@@ -320,13 +319,24 @@ Btw - you can access the information of an S4-class such as RasterLayer objects 
 
 ```{r}
 # str(ras1) #check this
-ras1@crs
+ras1@crs    # crs = coordinate reference system. If empty, assign it!
 ```
 <br>
 
-### Assign projection 
+### Assign coord. ref. system 
 
-Important! Please read:
+Important! Please read and repeat basic GIS-knowledge on coordinate reference 
+systems (crs), map projections, and geographic and projected coordinates.  
+
+If a map already has a defined crs, then you cannot simply overwrite this! To
+transform the coordinates, e.g. angular coordinates of latitude/ longitude of WGS84, 
+into a projected crs with planar coordinates (e.g. equal area of Lambert Azimuthal),
+you need to *transform* it (see below chapter **Raster Projection**).
+
+<br>
+In the following, we assign the crs only when no information is provided. This can be 
+the case when you upload a map based on a simple data frame or matrix, i.e. when
+it is not a spatial object.  
 @crs gives the information of the object (here: raster layer) Bor_mat or ras1, and
 CRS() is calling to a function that sets/defines the crs of the object. 
 Mind the spelling in small letters/ capitals! 
@@ -346,7 +356,11 @@ ras1@crs <- CRS("+init=epsg:4326")
 # mind: crs != CRS
 ```
 <br>
-Projections can also be transferred from one object to another, when the crs hasn't yet been specified/ set . In the following, load the topographic map (digital elevation model) of Borneo (Bor_dem.asc) and assign it the same crs as Bor_mat:
+Projections can also be transferred from one object to another, 
+but only when the crs hasn't yet been specified, i.e. when the @crs -slot is empty.
+In the following, load the topographic map (digital elevation model) of 
+Borneo (Bor_dem.asc or bio_asc_24.asc) and assign it the same crs as Bor_mat, 
+because we know they are overlaying (you can check that with the raster extents):
 ```{r}
 # ras24 = DEM = digital elevation model
 ras24 <- raster(x = paste0(maps_wd, '/bio_asc_24.asc')) 
