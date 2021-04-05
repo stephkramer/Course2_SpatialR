@@ -128,7 +128,7 @@ S Kramer-Schadt, et al.2016. Raffles Bulletin of Zoology, Supplement No. 33: 18â
 pkgs = c("here", "sp", "sf", "dismo", "raster", "GISTools",  "rgdal", 
          "maptools", "rgeos","rgl","rasterVis", "ellipse", "units", "tmap", 
          "viridis","dplyr", "gdistance","vegan", "gridExtra",
-         "psych", "iNext", "BAT", "ggplot2") # package names
+         "psych", "iNEXT", "BAT", "ggplot2") # package names
 # install.packages(pkgs)
 # update.packages()
 ```
@@ -146,7 +146,8 @@ library(rgeos)
 library(rgl)
 library(rasterVis)
 
-# the soon up-to-date spatial packages
+# the soon up-to-date spatial packages: 'terra' and 'stars'
+# however, they still create problems when used together with 'raster' etc.
 library(sf)
 library(tmap)
 library(dismo)
