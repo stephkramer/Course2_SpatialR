@@ -4,18 +4,29 @@ author: "Stephanie Kramer-Schadt"
 date: "`r Sys.setlocale('LC_TIME','C'); paste('Last Update', format(Sys.time(), '%B %e, %Y')) `" 
         #"`r Sys.Date()`" # 
 output:
-  html_document:
+  rmdformats::readthedown:
+    highlight: kate
     code_folding: show
-    link-citations: yes
-    toc: yes
     toc_depth: 4
-    toc_float: yes
-  pdf_document:
-    toc: yes
-    toc_depth: '4'
-  slidy_presentation: default
+    toc_float: true
 editor_options:
   chunk_output_type: console
+params:
+  date: !r Sys.Date()
+---
+
+<style>
+h1 {
+  color: Orange ;
+}
+h2, h3, h4, h5, h6, legend {
+  color: Indigo ;
+}
+
+#sidebar h2 {
+  background-color: Indigo;
+}
+</style>
 ---
 
 ```{r setup, include=FALSE}
@@ -81,7 +92,7 @@ S Kramer-Schadt, et al.2016. Raffles Bulletin of Zoology, Supplement No. 33: 18�
   https://clauswilke.com/dataviz/geospatial-data.html
 
 4. overview over spatial packages
-* http://cran.r-project.org/web/views/Spatial.html # http://cran.r-project.org/view=Spatial
+* http://cran.r-project.org/web/views/Spatial.html = http://cran.r-project.org/view=Spatial
 * https://www.r-spatial.org/  
 
 5. R-cheatsheets - great for learning 'vocabulary'
@@ -187,21 +198,20 @@ Set your root directory, e.g. the directory under which you store everything
 you need for this course, i.e. the data and the R-Scripts. You could name it
 'TUB_BD_Course'.
 
-Create the subfolders relative to root_wd. Please adjust to your setup. A possible
-folder structure could be: 
+Create the subfolders relative to root-folder. Please adjust to your setup. 
+A possible folder structure could be: 
 <br>
 
--- TUB_BD_Course
-<br>
------ R          # store here all your scripts, i.e. this script day_2.R,..
-.<br>
------ _Data_Borneo    # the Borneo data 
-<br>
--------- BaseMaps      # geo data, found in _Data_Borneo
-<br>
--------- BaseRecords   # observation data, found in _Data_Borneo 
-<br>
 
+``` bash
+├── TUB_BD_Course                   # root folder 
+│   └── _Data_Borneo                # the Borneo data
+│       └── BaseMaps                # geo data, found in _Data_Borneo
+│       └── BaseRecords             # animal observation data in _Data_Borneo
+│   └── R                           # store here all your scripts, i.e.
+│       └── script_course1.R
+│       └── script_course2.R
+```
 <br>
 
 ```{r}
@@ -217,12 +227,12 @@ root_wd <- setwd("C:/Users/kramer/PopDynIZW Dropbox/Steph Kramer/_GitHub")
 Now, we assign the path to these folders relative to the root directory:
 <br>
 
--- root_wd      <br>
------ R           <br>
------ dbor_wd    <br>
--------- maps_wd    <br>
--------- recs_wd    <br>
-
+``` bash
+├── root_wd                    # TUB_BD_Course 
+│   └── dbor_wd                # _Data_Borneo
+│       └── maps_wd            # BaseMaps
+│       └── recs_wd            # BaseRecords
+```
 
 ```{r}
 #today, we start with Borneo
@@ -235,24 +245,24 @@ Create an output folder where you can temporarily store your results (anything
 you plot, create, want to save,....) with *dir.create*.
 
 ```{r}
-output_wd <- paste0(dirname(root_wd), "/", "_A_Borrar")
+output_wd <- paste0(dirname(root_wd), "/", "Output")
 if (!dir.exists(output_wd)) {dir.create(output_wd)}
 
 ```
 Finally, your folder structure will look like this:
 
--- TUB_BD_Course <br>
------ R          # store here all your scripts, i.e. this script day_2.R,...
-<br>
------ output     # for everything you create/ plot/ save
-<br>
--------- _Data_Borneo    # the Borneo data
-<br>
--------- BaseMaps      # geo data, found in _Data_Borneo 
-<br>
--------- BaseRecords   # observation data, found in _Data_Borneo 
-<br>
 
+``` bash
+├── TUB_BD_Course                   # root folder 
+│   └── _Data_Borneo                # the Borneo data
+│       └── BaseMaps                # geo data, found in _Data_Borneo
+│       └── BaseRecords             # animal observation data in _Data_Borneo
+│   └── R                           # store here all your scripts, i.e.
+│       └── script_course1.R
+│       └── script_course2.R
+│   └── output                      # for any results/ plots,...
+
+```
 <br><br>
 
 
